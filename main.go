@@ -1,7 +1,10 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 	"github.com/wigwamwam/CRUD_app/controllers"
 	"github.com/wigwamwam/CRUD_app/initializers"
 )
@@ -12,13 +15,15 @@ func init() {
 }
 
 func main() {
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 
-	r := gin.Default()
-	r.POST("/banks", controllers.BanksCreate)
-	r.PUT("/banks/:id", controllers.BanksUpdate)
-	r.GET("/banks", controllers.BanksIndex)
-	r.GET("/banks/:id", controllers.BanksShow)
-	r.DELETE("/banks/:id", controllers.BanksDelete)
+	r.Get("/banks", controllers.IndexBanks())
+	r.Post("/banks", controllers.CreateBank())
+	r.Get("/banks/{id}", controllers.ShowBank())
+	r.Delete("/banks/{id}", controllers.DeleteBank())
+	r.Put("/banks/{id}", controllers.UpdateBank())
 
-	r.Run() // listen and serve on 0.0.0.0:8080
+	http.ListenAndServe(":3000", r)
+
 }

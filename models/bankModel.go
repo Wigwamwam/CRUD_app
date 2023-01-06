@@ -1,12 +1,13 @@
 package models
+
 // naming convention should be plural or singular?
 
 import "gorm.io/gorm"
 
 type Bank struct {
 	gorm.Model
-	Name 			string
-	IBAN 			string
+	Name string `json:"name"`
+	IBAN string `json:"iban"`
 }
 
 // // type User struct {

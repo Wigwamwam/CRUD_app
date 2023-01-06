@@ -8,11 +8,9 @@ import (
 func init() {
 	initializers.LoadEnvVairables()
 	initializers.ConnectToDB()
-
 }
 
 func main() {
 	initializers.DB.AutoMigrate(&models.Bank{})
 	// modle struct to create - why & in front
-
 }

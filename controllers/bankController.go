@@ -1,84 +1,125 @@
 package controllers
 
+// TODO: imrpove error handling
+
+
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi"
 	"github.com/wigwamwam/CRUD_app/initializers"
 	"github.com/wigwamwam/CRUD_app/models"
 )
 
-func BanksCreate(c *gin.Context) {
+func IndexBanks() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var banks []models.Bank
+		initializers.DB.Find(&banks)
 
-	var body struct {
-		Name string
-		IBAN string
+		response, err := json.Marshal(banks)
+
+		if err != nil {
+			fmt.Println("Error", err)
+			panic(err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
+}
 
-	c.Bind(&body)
+func CreateBank() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := models.Bank{}
 
-	bank := models.Bank{Name: body.Name, IBAN: body.IBAN}
-	result := initializers.DB.Create(&bank)
-	// what happens to this - why are we not passing this into the json?
+		// marshall vs unmarchall
 
-	if result.Error != nil {
-		c.Status(400)
-		return
+		json.NewDecoder(r.Body).Decode(&body)
+
+		newBank := models.Bank{Name: body.Name, IBAN: body.IBAN}
+
+		initializers.DB.Create(&newBank)
+
+		response, err := json.Marshal(newBank)
+
+		if err != nil {
+			fmt.Println("Error", err)
+			panic(err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(response)
 	}
-
-	c.JSON(200, gin.H{
-		"bank": bank,
-	})
 }
 
-func BanksIndex(c *gin.Context) {
-	var banks []models.Bank
-	initializers.DB.Find(&banks)
+func ShowBank() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
-	c.JSON(200, gin.H{
-		"banks": banks,
-	})
-}
+		var bank []models.Bank
+		initializers.DB.Find(&bank, id)
 
-func BanksShow(c *gin.Context) {
-	id := c.Param("id")
+		response, err := json.Marshal(bank)
 
-	var bank []models.Bank
-	initializers.DB.Find(&bank, id)
+		if err != nil {
+			fmt.Println("Error", err)
+			panic(err)
+		}
 
-	c.JSON(200, gin.H{
-		"bank": bank,
-	})
-}
-
-func BanksUpdate(c *gin.Context) {
-	id := c.Param("id")
-
-	var body struct {
-		Name string
-		IBAN string
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(response)
 	}
-
-	c.Bind(&body)
-
-	var bank []models.Bank
-	initializers.DB.Find(&bank, id)
-
-	initializers.DB.Model(&bank).Updates(models.Bank{
-		Name: body.Name,
-		IBAN: body.IBAN,
-	})
-
-	c.JSON(200, gin.H{
-		"bank": bank,
-	})
-
 }
 
-func BanksDelete(c *gin.Context) {
-	id := c.Param("id")
+func DeleteBank() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
-	initializers.DB.Delete(&models.Bank{}, id)
-	// why is the delete and find method written differently?
+		var bank []models.Bank
+		initializers.DB.Find(&bank, id)
 
-	c.Status(200)
+		response, err := json.Marshal(bank)
 
+		if err != nil {
+			fmt.Println("Error", err)
+			panic(err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(response)
+	}
+}
+
+func UpdateBank() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+		body := models.Bank{}
+
+		json.NewDecoder(r.Body).Decode(&body)
+
+		var bank []models.Bank
+
+		initializers.DB.Find(&bank, id)
+
+		initializers.DB.Model(&bank).Updates(models.Bank{Name: body.Name, IBAN: body.IBAN})
+
+		response, err := json.Marshal(bank)
+
+		if err != nil {
+			fmt.Println("Error", err)
+			panic(err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
+	}
 }

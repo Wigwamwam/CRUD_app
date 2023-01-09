@@ -17,3 +17,4 @@ type Bank struct {
 //   DeletedAt gorm.DeletedAt `gorm:"index"`
 //   Name string
 // }
+

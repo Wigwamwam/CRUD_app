@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,7 +20,7 @@ type errorResponse struct {
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
-	errorResponse := errorResponse{fmt.Sprintf("%v: %v", msg, err)}
+	errorResponse := errorResponse{fmt.Sprintf("%v -%v", msg, err)}
 	response, _ := json.Marshal(errorResponse)
 	respondWithJSON(w, code, response)
 }
@@ -79,27 +80,30 @@ func CreateBank() http.HandlerFunc {
 
 func ShowBank() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		url := chi.URLParam(r, "id")
+		// why not use chi.URLParam?
+		// url := chi.URLParam(r, "id")
 
-		id, err := strconv.Atoi(url)
+		// url := r.URL.Query()["id"][0]
 
-		fmt.Println(url)
+		// id, err := strconv.Atoi(url)
 
-		if err != nil {
-			respondWithError(w, http.StatusNoContent, "invalid ID:", err)
-			return
-		}
+		// fmt.Println(url)
 
-		var bank []models.Bank
-		initializers.DB.Find(&bank, id)
+		// if err != nil {
+		respondWithError(w, http.StatusNoContent, "invalid ID", errors.New(r.URL.RawQuery))
+		return
+		// }
 
-		response, err := json.Marshal(bank)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Internal Server Error", err)
-			return
-		}
+		// var bank []models.Bank
+		// initializers.DB.Find(&bank, id)
 
-		respondWithJSON(w, http.StatusOK, response)
+		// response, err := json.Marshal(bank)
+		// if err != nil {
+		// 	respondWithError(w, http.StatusInternalServerError, "Internal Server Error", err)
+		// 	return
+		// }
+
+		// respondWithJSON(w, http.StatusOK, response)
 	}
 }
 

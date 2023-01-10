@@ -6,13 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/wigwamwam/CRUD_app/handlers"
-	"github.com/wigwamwam/CRUD_app/initializers"
 )
-
-func init() {
-	initializers.LoadEnvVairables()
-	initializers.ConnectToDB()
-}
 
 func main() {
 

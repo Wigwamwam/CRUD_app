@@ -1,26 +1,44 @@
 package initializers
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"os"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// var NewDB *sql.DB
+
+// func main() {
+// 	var err error
+// 	psqlInfo := os.Getenv("DB_URL")
+
+// 	NewDB, err := sql.Open("postgres", psqlInfo)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	defer NewDB.Close()
+
+// 	err = NewDB.Ping()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	fmt.Println("Successfully connected!")
+// }
+
 func main() {
-	psqlInfo := os.Getenv("DB_URL")
+	// Create a connection config
 
-	db, err := sql.Open("postgres", psqlInfo)
+	// Connect to the database
+	dbpool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
+		os.Exit(1)
 	}
-	defer db.Close()
+	defer dbpool.Close()
 
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println("Connected to the database.")
 
-	fmt.Println("Successfully connected!")
 }

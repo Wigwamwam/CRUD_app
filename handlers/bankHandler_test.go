@@ -16,16 +16,15 @@ func TestShowBank(t *testing.T) {
 	// Test case 1: Successful request with a valid bank ID
 	r := chi.NewRouter()
 
-	r.Get("/banks/", handlers.ShowBank())
+	r.Get("/banks/{id}", handlers.ShowBank())
 
-	url := "/banks/?id=2"
+	// url := "/banks/?id=2"
+
+	url := "/banks/2"
 
 	req, err := http.NewRequest("GET", url, nil)
-
 	fmt.Println(req.URL.RawQuery)
-
 	// req, err := http.NewRequest("GET", "/banks/?id=1", nil)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +38,7 @@ func TestShowBank(t *testing.T) {
 
 	fmt.Println(string(data))
 
-	// if status := rr.Code; status != http.StatusOK {
-	// 	t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	// }
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
 }

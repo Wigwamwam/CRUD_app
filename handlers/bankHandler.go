@@ -80,30 +80,30 @@ func CreateBank() http.HandlerFunc {
 
 func ShowBank() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// why not use chi.URLParam?
-		// url := chi.URLParam(r, "id")
+		// // why not use chi.URLParam?
+		url := chi.URLParam(r, "id")
 
 		// url := r.URL.Query()["id"][0]
 
-		// id, err := strconv.Atoi(url)
+		id, err := strconv.Atoi(url)
 
-		// fmt.Println(url)
+		fmt.Println(url)
 
-		// if err != nil {
-		respondWithError(w, http.StatusNoContent, "invalid ID", errors.New(r.URL.RawQuery))
-		return
-		// }
+		if err != nil {
+			respondWithError(w, http.StatusNoContent, "invalid ID", errors.New(r.URL.RawQuery))
+			return
+		}
 
-		// var bank []models.Bank
-		// initializers.DB.Find(&bank, id)
+		var bank []models.Bank
+		initializers.DB.Find(&bank, id)
 
-		// response, err := json.Marshal(bank)
-		// if err != nil {
-		// 	respondWithError(w, http.StatusInternalServerError, "Internal Server Error", err)
-		// 	return
-		// }
+		response, err := json.Marshal(bank)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Internal Server Error", err)
+			return
+		}
 
-		// respondWithJSON(w, http.StatusOK, response)
+		respondWithJSON(w, http.StatusOK, response)
 	}
 }
 

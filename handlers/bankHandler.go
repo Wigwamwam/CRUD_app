@@ -112,7 +112,7 @@ func DeleteBank() http.HandlerFunc {
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		fmt.Println(err)
 		if err != nil {
-			respondWithError(w, http.StatusNotFound, "ID not found:", err)
+			respondWithError(w, http.StatusNoContent, "invalid ID", errors.New(r.URL.RawQuery))
 			return
 		}
 
@@ -126,7 +126,7 @@ func DeleteBank() http.HandlerFunc {
 			return
 		}
 		// moved permantly on deleted
-		respondWithJSON(w, http.StatusMovedPermanently, response)
+		respondWithJSON(w, http.StatusOK, response)
 	}
 }
 

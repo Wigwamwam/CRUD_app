@@ -1,20 +1,16 @@
 package models
 
-// naming convention should be plural or singular?
+import (
+	"time"
 
-import "gorm.io/gorm"
+	"github.com/guregu/null"
+)
 
 type Bank struct {
-	gorm.Model
-	Name string `json:"name"`
-	IBAN string `json:"iban"`
+	ID        uint
+	Name      string `json:"name"`
+	IBAN      string `json:"iban"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt null.Time
 }
-
-// // type User struct {
-//   ID        uint           `gorm:"primaryKey"`
-//   CreatedAt time.Time
-//   UpdatedAt time.Time
-//   DeletedAt gorm.DeletedAt `gorm:"index"`
-//   Name string
-// }
-

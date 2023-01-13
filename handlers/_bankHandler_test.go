@@ -13,6 +13,9 @@ import (
 	"github.com/wigwamwam/CRUD_app/models"
 )
 
+// Questions:
+// How to refactor
+
 func TestHandlerIndexBanks(t *testing.T) {
 	t.Run("Valid Index Route", func(t *testing.T) {
 		r := chi.NewRouter()
@@ -53,7 +56,7 @@ func TestCreateBank(t *testing.T) {
 
 		// Create a new bank
 		w := httptest.NewRecorder()
-		handlers.CreateBank()(w, req)
+		handler.CreateBank()(w, req)
 		resp := w.Result()
 		defer resp.Body.Close()
 
@@ -101,9 +104,12 @@ func TestCreateBank(t *testing.T) {
 
 func TestShowBank(t *testing.T) {
 	// Test case 1: Successful request with a valid bank ID
+
+	r := chi.NewRouter()
+	r.Get("/banks/{id}", handlers.ShowBank())
+
 	t.Run("Valid ID - with id=2", func(t *testing.T) {
-		r := chi.NewRouter()
-		r.Get("/banks/{id}", handlers.ShowBank())
+
 		url := "/banks/2"
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -123,9 +129,6 @@ func TestShowBank(t *testing.T) {
 
 	// Test case 2: Unsuccessful request with a invalid bank ID
 	t.Run("Invalid ID - with id=invalid", func(t *testing.T) {
-
-		r := chi.NewRouter()
-		r.Get("/banks/{id}", handlers.ShowBank())
 
 		url := "/banks/invalid"
 		req, err := http.NewRequest("GET", url, nil)

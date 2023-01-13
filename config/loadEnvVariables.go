@@ -1,4 +1,4 @@
-package initializers
+package config
 
 import (
 	"log"
@@ -6,13 +6,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func init() {
-	LoadEnvVairables()
-	ConnectToDB()
-}
-
 func LoadEnvVairables() {
-	err := godotenv.Load("../.env")
+
+	// "../.env" - doesnt work with tests
+	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

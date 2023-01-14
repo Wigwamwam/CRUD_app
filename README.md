@@ -34,7 +34,6 @@ This repo currently works with:
 
 ## Run Service on Local Development
 
-To run the service on local development, ensure you have followed 'Set-Up' and 'Testing' sections. To start local development run `rails s` in the terminal.
 To call the API service, go to Postman [https://www.postman.com/] and sign up. Then, follow these instructions [https://learning.postman.com/docs/getting-started/sending-the-first-request/] with the following route paths to access the service:
 
 ```

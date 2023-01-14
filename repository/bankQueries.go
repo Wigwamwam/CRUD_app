@@ -74,8 +74,6 @@ func (db *DB) SelectBankByID(id int) (models.Bank, error) {
 	return bank, nil
 }
 
-// error when inputing a
-
 func (db *DB) DeleteBankByID(id int) error {
 	query := "DELETE FROM banks WHERE id = $1"
 	row, err := db.pool.Exec(context.Background(), query, id)

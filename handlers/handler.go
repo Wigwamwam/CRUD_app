@@ -8,14 +8,6 @@ import (
 	customErrors "github.com/wigwamwam/CRUD_app/repository/errors"
 )
 
-// to do:
-// - build out more handle app error
-
-func internalServerError(w http.ResponseWriter, err error) {
-	errorResponse := errorResponse{fmt.Sprintf("%v", err)}
-	response, _ := json.Marshal(errorResponse)
-	respondWithJSON(w, http.StatusInternalServerError, response)
-}
 
 func respondWithError(w http.ResponseWriter, code int, err error) {
 	errorResponse := errorResponse{fmt.Sprintf("%v", err)}
@@ -28,7 +20,7 @@ func respondWithJSON(w http.ResponseWriter, code int, response []byte) {
 	w.WriteHeader(code)
 	_, err := w.Write(response)
 	if err != nil {
-		internalServerError(w, err)
+		handleAppError(w, err)
 	}
 }
 

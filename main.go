@@ -16,8 +16,8 @@ import (
 
 func main() {
 	config.LoadEnvVairables()
-	dsn := os.Getenv("DB_URL")
-	pool, err := pgxpool.New(context.Background(), dsn)
+	dbUrl := os.Getenv("DB_URL")
+	pool, err := pgxpool.New(context.Background(), dbUrl)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
 		os.Exit(1)
@@ -31,7 +31,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	// change the below to handler once i have edited the handlers
+	
 	r.Get("/banks", handler.HandlerIndexBanks())
 	r.Post("/banks", handler.CreateBank())
 	r.Get("/banks/{id}", handler.ShowBank())

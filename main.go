@@ -31,7 +31,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	
+
 	r.Get("/banks", handler.HandlerIndexBanks())
 	r.Post("/banks", handler.CreateBank())
 	r.Get("/banks/{id}", handler.ShowBank())

@@ -100,7 +100,7 @@ func Test_HandlerIndexBanks(t *testing.T) {
 	})
 }
 
-func TestCreateBank(t *testing.T) {
+func Test_CreateBank(t *testing.T) {
 	mockController := gomock.NewController(t)
 	mockDao := repository.NewMockDAO(mockController)
 	handler := handlers.NewHandler(mockDao)
@@ -162,67 +162,31 @@ func TestCreateBank(t *testing.T) {
 	})
 }
 
-// func TestCreateBank(t *testing.T) {
-// 	t.Run("Valid Create Request", func(t *testing.T) {
-// 		r := chi.NewRouter()
-// 		r.Post("/banks", handlers.HandlerIndexBanks())
+func Test_ShowBank(t *testing.T) {
+	mockController := gomock.NewController(t)
+	mockDao := repository.NewMockDAO(mockController)
+	handler := handlers.NewHandler(mockDao)
+	r := chi.NewRouter()
+	r.Get("/banks/{id}", handler.ShowBank())
 
-// 		// setup test data
-// 		bank := models.Bank{Name: "Test Ban", IBAN: "12345"}
-// 		payload, _ := json.Marshal(bank)
-// 		url := "/banks"
+	t.Run("Valid Show", func(t *testing.T){
+		id := 2
+		req, _ := http.NewRequest("GET", "/banks/2", nil)
+		returnedBankFromDB := models.Bank{ID: 2, Name: "test bank", IBAN: "1234567890"}
+		mockDao.EXPECT().SelectBankByID(id).Return(returnedBankFromDB, nil)
 
-// 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
 
-// 		// Create a new bank
-// 		w := httptest.NewRecorder()
-// 		handler.CreateBank()(w, req)
-// 		resp := w.Result()
-// 		defer resp.Body.Close()
+		expectedBankResponse := models.Bank{}
+		json.Unmarshal(rr.Body.Bytes(), &expectedBankResponse)
 
-// 		if resp.StatusCode != http.StatusCreated {
-// 			t.Errorf("Expected status code to be 201, got %d", resp.StatusCode)
-// 		}
+		assert.Equal(t, expectedBankResponse, returnedBankFromDB)
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+}
 
-// 		var newBank models.Bank
-// 		b, _ := io.ReadAll(resp.Body)
-// 		json.Unmarshal(b, &newBank)
 
-// 		if newBank.Name != bank.Name {
-// 			t.Errorf("Expected bank name to be %s, got %s", bank.Name, newBank.Name)
-// 		}
-
-// 		if newBank.IBAN != bank.IBAN {
-// 			t.Errorf("Expected bank IBAN to be %s, got %s", bank.IBAN, newBank.IBAN)
-// 		}
-// 	})
-
-// 	t.Run("Test error when reading request body with invalid JSON", func(t *testing.T) {
-// 		r := chi.NewRouter()
-// 		r.Post("/banks", handlers.HandlerIndexBanks())
-// 		url := "/banks"
-
-// 		// testing invalid request body:
-// 		bank := "invalid json"
-// 		payload, _ := json.Marshal(bank)
-
-// 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-
-// 		w := httptest.NewRecorder()
-// 		handlers.CreateBank()(w, req)
-// 		resp := w.Result()
-// 		defer resp.Body.Close()
-
-// 		if resp.StatusCode != http.StatusBadRequest {
-// 			t.Errorf("Expected status code to be 400, got %d", resp.StatusCode)
-// 		}
-// 	})
 
 // func TestShowBank(t *testing.T) {
 // 	// Test case 1: Successful request with a valid bank ID

@@ -25,6 +25,7 @@ func main() {
 	defer pool.Close()
 
 	db := repository.NewDb(pool)
+	// cant have a pointer to an interface
 	handler := handlers.NewHandler(db)
 
 	fmt.Println("Successfully connected")

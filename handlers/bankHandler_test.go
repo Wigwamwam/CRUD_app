@@ -1,0 +1,273 @@
+package handlers_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/wigwamwam/CRUD_app/handlers"
+	"github.com/wigwamwam/CRUD_app/models"
+	"github.com/wigwamwam/CRUD_app/repository"
+	customErrors "github.com/wigwamwam/CRUD_app/repository/errors"
+)
+
+// Questions:
+// How to refactor
+
+func Test_HandlerIndexBanks(t *testing.T) {
+	mockController := gomock.NewController(t)
+	mockDao := repository.NewMockDAO(mockController)
+	handler := handlers.NewHandler(mockDao)
+	r := chi.NewRouter()
+
+	r.Get("/banks", handler.HandlerIndexBanks())
+
+	type tc struct {
+		expectedError        error
+		responseCode         int
+		expectedResponseBody string
+	}
+
+	cases := map[string]*tc{
+		"returns not found error": {
+			expectedError:        &customErrors.NotFoundError{},
+			responseCode:         http.StatusNotFound,
+			expectedResponseBody: `{"Message":"no entries found"}`,
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+
+			mockDao.EXPECT().SelectAllBanks().Return(nil, tc.expectedError)
+
+			req, err := http.NewRequest("GET", "/banks", nil)
+			assert.Equal(t, nil, err)
+
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			assert.Equal(t, tc.responseCode, rr.Code)
+			assert.JSONEq(t, tc.expectedResponseBody, rr.Body.String())
+		})
+	}
+
+	t.Run("Valid Index Route", func(t *testing.T) {
+
+		mockDao.EXPECT().SelectAllBanks().Return([]models.Bank{}, nil)
+
+		req, err := http.NewRequest("GET", "/banks", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Why does this through an error:
+		// assert.Equal(t, req, nil)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("NotFoundError", func(t *testing.T) {
+		mockDao.EXPECT().SelectAllBanks().Return(nil, &customErrors.NotFoundError{})
+
+		req, err := http.NewRequest("GET", "/banks", nil)
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Unhandled error", func(t *testing.T) {
+		mockDao.EXPECT().SelectAllBanks().Return(nil, errors.New("unhandled error"))
+		req, err := http.NewRequest("GET", "/banks", nil)
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
+func TestCreateBank(t *testing.T) {
+	mockController := gomock.NewController(t)
+	mockDao := repository.NewMockDAO(mockController)
+	handler := handlers.NewHandler(mockDao)
+	r := chi.NewRouter()
+	r.Post("/banks", handler.CreateBank())
+
+	t.Run("Valid Create Request", func(t *testing.T) {
+		incomingPayload := models.Bank{Name: "Test Ban", IBAN: "12345"}
+		returnedBankFromDB := models.Bank{ID: 1, Name: "test bank", IBAN: "1234567890"}
+
+		mockDao.EXPECT().InsertBank(incomingPayload).Return(returnedBankFromDB, nil).Times(1)
+
+		body, _ := json.Marshal(incomingPayload)
+		req, _ := http.NewRequest("POST", "/banks", bytes.NewReader(body))
+
+		rr := httptest.NewRecorder()
+		handler.CreateBank()(rr, req)
+
+		expectedBankResponse := models.Bank{}
+		json.Unmarshal(rr.Body.Bytes(), &expectedBankResponse)
+
+		assert.Equal(t, expectedBankResponse, returnedBankFromDB)
+		// assert.JSONEq(t, `{"ID":1,"name":"test bank","iban":"1234567890","CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null}`, rr.Body.String())
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+	})
+}
+
+// func TestCreateBank(t *testing.T) {
+// 	t.Run("Valid Create Request", func(t *testing.T) {
+// 		r := chi.NewRouter()
+// 		r.Post("/banks", handlers.HandlerIndexBanks())
+
+// 		// setup test data
+// 		bank := models.Bank{Name: "Test Ban", IBAN: "12345"}
+// 		payload, _ := json.Marshal(bank)
+// 		url := "/banks"
+
+// 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		// Create a new bank
+// 		w := httptest.NewRecorder()
+// 		handler.CreateBank()(w, req)
+// 		resp := w.Result()
+// 		defer resp.Body.Close()
+
+// 		if resp.StatusCode != http.StatusCreated {
+// 			t.Errorf("Expected status code to be 201, got %d", resp.StatusCode)
+// 		}
+
+// 		var newBank models.Bank
+// 		b, _ := io.ReadAll(resp.Body)
+// 		json.Unmarshal(b, &newBank)
+
+// 		if newBank.Name != bank.Name {
+// 			t.Errorf("Expected bank name to be %s, got %s", bank.Name, newBank.Name)
+// 		}
+
+// 		if newBank.IBAN != bank.IBAN {
+// 			t.Errorf("Expected bank IBAN to be %s, got %s", bank.IBAN, newBank.IBAN)
+// 		}
+// 	})
+
+// 	t.Run("Test error when reading request body with invalid JSON", func(t *testing.T) {
+// 		r := chi.NewRouter()
+// 		r.Post("/banks", handlers.HandlerIndexBanks())
+// 		url := "/banks"
+
+// 		// testing invalid request body:
+// 		bank := "invalid json"
+// 		payload, _ := json.Marshal(bank)
+
+// 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		w := httptest.NewRecorder()
+// 		handlers.CreateBank()(w, req)
+// 		resp := w.Result()
+// 		defer resp.Body.Close()
+
+// 		if resp.StatusCode != http.StatusBadRequest {
+// 			t.Errorf("Expected status code to be 400, got %d", resp.StatusCode)
+// 		}
+// 	})
+
+// func TestShowBank(t *testing.T) {
+// 	// Test case 1: Successful request with a valid bank ID
+
+// 	r := chi.NewRouter()
+// 	r.Get("/banks/{id}", handlers.ShowBank())
+
+// 	t.Run("Valid ID - with id=2", func(t *testing.T) {
+
+// 		url := "/banks/2"
+// 		req, err := http.NewRequest("GET", url, nil)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		rr := httptest.NewRecorder()
+// 		r.ServeHTTP(rr, req)
+
+// 		res := rr.Result()
+// 		defer res.Body.Close()
+
+// 		if status := rr.Code; status != http.StatusOK {
+// 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+// 		}
+// 	})
+
+// 	// Test case 2: Unsuccessful request with a invalid bank ID
+// 	t.Run("Invalid ID - with id=invalid", func(t *testing.T) {
+
+// 		url := "/banks/invalid"
+// 		req, err := http.NewRequest("GET", url, nil)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		rr := httptest.NewRecorder()
+// 		r.ServeHTTP(rr, req)
+
+// 		res := rr.Result()
+// 		defer res.Body.Close()
+
+// 		if status := rr.Code; status != http.StatusNoContent {
+// 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
+// 		}
+// 	})
+// }
+
+// func TestDeleteBank(t *testing.T) {
+// 	r := chi.NewRouter()
+// 	r.Delete("/banks/{id}", handlers.ShowBank())
+
+// 	t.Run("Invalid ID", func(t *testing.T) {
+// 		url := "/banks/invalid"
+// 		req, err := http.NewRequest("DELETE", url, nil)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		rr := httptest.NewRecorder()
+// 		r.ServeHTTP(rr, req)
+
+// 		if status := rr.Code; status != http.StatusNoContent {
+// 			t.Errorf("expected %d but got %d", http.StatusNoContent, status)
+// 		}
+// 	})
+
+// 	t.Run("Valid ID", func(t *testing.T) {
+// 		url := "/banks/2"
+// 		req, err := http.NewRequest("DELETE", url, nil)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		rr := httptest.NewRecorder()
+// 		r.ServeHTTP(rr, req)
+
+// 		if status := rr.Code; status != http.StatusOK {
+// 			t.Errorf("expected %d but got %d", http.StatusOK, status)
+// 		}
+// 	})
+// }

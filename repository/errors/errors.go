@@ -3,7 +3,6 @@ package errors
 import "fmt"
 
 type NotFoundError struct {
-	Id int
 }
 
 func (e *NotFoundError) Error() string {

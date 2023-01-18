@@ -14,21 +14,22 @@ import (
 	"github.com/wigwamwam/CRUD_app/repository"
 )
 
-type errorResponse struct {
-	Message string
-}
+
 
 type Handler struct {
-	db *repository.DB
+	DAO repository.DAO
 }
 
-func NewHandler(db *repository.DB) Handler {
-	return Handler{db: db}
+// create a new instance for the Handler struct
+// dependency injection - only use when there are methods on the struct
+// decoupled the handler from the database using an interface
+func NewHandler(dao repository.DAO) Handler {
+	return Handler{DAO: dao}
 }
 
 func (h *Handler) HandlerIndexBanks() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		allBanks, err := h.db.SelectAllBanks()
+		allBanks, err := h.DAO.SelectAllBanks()
 		if err != nil {
 			handleAppError(w, err)
 			return
@@ -63,7 +64,7 @@ func (h *Handler) CreateBank() http.HandlerFunc {
 
 		bankPayload := models.Bank{Name: bank.Name, IBAN: bank.IBAN}
 
-		createdBank, err := h.db.InsertBank(bankPayload)
+		createdBank, err := h.DAO.InsertBank(bankPayload)
 		if err != nil {
 			handleAppError(w, err)
 			return
@@ -89,7 +90,7 @@ func (h *Handler) ShowBank() http.HandlerFunc {
 
 		var bankByID models.Bank
 
-		bankByID, err = h.db.SelectBankByID(id)
+		bankByID, err = h.DAO.SelectBankByID(id)
 		if err != nil {
 			handleAppError(w, err)
 			return
@@ -114,7 +115,7 @@ func (h *Handler) DeleteBank() http.HandlerFunc {
 			return
 		}
 
-		err = h.db.DeleteBankByID(idParam)
+		err = h.DAO.DeleteBankByID(idParam)
 		if err != nil {
 			handleAppError(w, err)
 			return
@@ -153,7 +154,7 @@ func (h *Handler) UpdateBank() http.HandlerFunc {
 			return
 		}
 
-		updatedBank, err := h.db.UpdateBank(idParam, bank)
+		updatedBank, err := h.DAO.UpdateBank(idParam, bank)
 		if err != nil {
 			handleAppError(w, err)
 			return

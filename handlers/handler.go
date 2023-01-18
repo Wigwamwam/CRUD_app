@@ -8,6 +8,9 @@ import (
 	customErrors "github.com/wigwamwam/CRUD_app/repository/errors"
 )
 
+type errorResponse struct {
+	Message string
+}
 
 func respondWithError(w http.ResponseWriter, code int, err error) {
 	errorResponse := errorResponse{fmt.Sprintf("%v", err)}

@@ -127,6 +127,39 @@ func TestCreateBank(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 	})
+
+	t.Run("Returns Creating Bank Error", func(t *testing.T) {
+		incomingPayload := models.Bank{Name: "Test Ban", IBAN: "12345"}
+
+		mockDao.EXPECT().InsertBank(incomingPayload).Return(models.Bank{}, &customErrors.CreatingBankError{}).Times(1)
+
+		body, _ := json.Marshal(incomingPayload)
+		req, err := http.NewRequest("POST", "/banks", bytes.NewReader(body))
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		handler.CreateBank()(rr, req)
+
+		// assert.JSONEq(t, `{"ID":1,"name":"test bank","iban":"1234567890","CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null}`, rr.Body.String())
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("Unhandled Error", func(t *testing.T) {
+		incomingPayload := models.Bank{Name: "Test Ban", IBAN: "12345"}
+
+		mockDao.EXPECT().InsertBank(incomingPayload).Return(models.Bank{}, errors.New("unhandled error")).Times(1)
+
+		body, _ := json.Marshal(incomingPayload)
+		req, err := http.NewRequest("POST", "/banks", bytes.NewReader(body))
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		handler.CreateBank()(rr, req)
+
+		// assert.JSONEq(t, `{"ID":1,"name":"test bank","iban":"1234567890","CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null}`, rr.Body.String())
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
 }
 
 // func TestCreateBank(t *testing.T) {

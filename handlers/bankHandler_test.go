@@ -117,14 +117,12 @@ func Test_CreateBank(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/banks", bytes.NewReader(body))
 
 		rr := httptest.NewRecorder()
-		handler.CreateBank()(rr, req)
+		r.ServeHTTP(rr, req)
 
 		expectedBankResponse := models.Bank{}
 		json.Unmarshal(rr.Body.Bytes(), &expectedBankResponse)
 
 		assert.Equal(t, expectedBankResponse, returnedBankFromDB)
-		// assert.JSONEq(t, `{"ID":1,"name":"test bank","iban":"1234567890","CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null}`, rr.Body.String())
-
 		assert.Equal(t, http.StatusCreated, rr.Code)
 	})
 
@@ -139,8 +137,6 @@ func Test_CreateBank(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		handler.CreateBank()(rr, req)
-
-		// assert.JSONEq(t, `{"ID":1,"name":"test bank","iban":"1234567890","CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null}`, rr.Body.String())
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
@@ -169,7 +165,7 @@ func Test_ShowBank(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/banks/{id}", handler.ShowBank())
 
-	t.Run("Valid Show", func(t *testing.T){
+	t.Run("Valid Show", func(t *testing.T) {
 		id := 2
 		req, _ := http.NewRequest("GET", "/banks/2", nil)
 		returnedBankFromDB := models.Bank{ID: 2, Name: "test bank", IBAN: "1234567890"}
@@ -184,55 +180,130 @@ func Test_ShowBank(t *testing.T) {
 		assert.Equal(t, expectedBankResponse, returnedBankFromDB)
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
+
+	t.Run("return id not found error", func(t *testing.T) {
+		id := 2
+		mockDao.EXPECT().SelectBankByID(id).Return(models.Bank{}, &customErrors.IdNotFoundError{})
+		req, err := http.NewRequest("GET", "/banks/2", nil)
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		// how to get the 0 to be a 2 - how to parse the id into the customer error handler?
+		assert.JSONEq(t, `{"Message":"id: 0 not found"}`, rr.Body.String())
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("return scanning id error", func(t *testing.T) {
+		id := 2
+		mockDao.EXPECT().SelectBankByID(id).Return(models.Bank{}, &customErrors.ScanningIdError{})
+		req, err := http.NewRequest("GET", "/banks/2", nil)
+		assert.Equal(t, nil, err)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		// how to get the 0 to be a 2 - how to parse the id into the customer error handler?
+		assert.JSONEq(t, `{"Message":"error scanning bank with ID 0"}`, rr.Body.String())
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
+func Test_UpdateBank(t *testing.T) {
+	mockController := gomock.NewController(t)
+	mockDao := repository.NewMockDAO(mockController)
+	handler := handlers.NewHandler(mockDao)
+	r := chi.NewRouter()
+	r.Put("/banks/{id}", handler.UpdateBank())
+
+	t.Run("Valid update", func(t *testing.T) {
+		id := 1
+		incomingPayload := models.Bank{ID: 1, Name: "Test Bank", IBAN: "1234567890"}
+		returnedBankFromDB := models.Bank{ID: 2, Name: "test bank", IBAN: "1234567890"}
+
+		body, _ := json.Marshal(incomingPayload)
+		req, _ := http.NewRequest("PUT", "/banks/1", bytes.NewReader(body))
+
+		mockDao.EXPECT().UpdateBank(id, incomingPayload).Return(returnedBankFromDB, nil).Times(1)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		expectedBankResponse := models.Bank{}
+		json.Unmarshal(rr.Body.Bytes(), &expectedBankResponse)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, expectedBankResponse, returnedBankFromDB)
+	})
+
+	t.Run("Return Id not found", func(t *testing.T) {
+		id := 1
+		incomingPayload := models.Bank{ID: 1, Name: "Test Bank", IBAN: "1234567890"}
+		// returnedBankFromDB := models.Bank{ID: 2, Name: "test bank", IBAN: "1234567890"}
+
+		body, _ := json.Marshal(incomingPayload)
+		req, _ := http.NewRequest("PUT", "/banks/1", bytes.NewReader(body))
+
+		mockDao.EXPECT().UpdateBank(id,  incomingPayload).Return(models.Bank{}, &customErrors.IdNotFoundError{}).Times(1)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		expectedBankResponse := models.Bank{}
+		json.Unmarshal(rr.Body.Bytes(), &expectedBankResponse)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}
+func Test_DeleteBank(t *testing.T) {
+	mockController := gomock.NewController(t)
+	mockDao := repository.NewMockDAO(mockController)
+	handler := handlers.NewHandler(mockDao)
+	r := chi.NewRouter()
+	r.Delete("/banks/{id}", handler.DeleteBank())
+
+	t.Run("Valid Delete", func(t *testing.T) {
+		id := 2
+		req, _ := http.NewRequest("DELETE", "/banks/2", nil)
+
+		mockDao.EXPECT().DeleteBankByID(id).Return(nil)
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNoContent, rr.Code)
+	})
+
+	t.Run("Returns DeletingBankError", func(t *testing.T) {
+		id := 2
+		req, _ := http.NewRequest("DELETE", "/banks/2", nil)
+
+		mockDao.EXPECT().DeleteBankByID(id).Return(&customErrors.DeletingBankError{})
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("Returns NotFoundError", func(t *testing.T) {
+		id := 2
+		req, _ := http.NewRequest("DELETE", "/banks/2", nil)
+
+		mockDao.EXPECT().DeleteBankByID(id).Return(&customErrors.NotFoundError{})
+
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
 }
 
 
 
-// func TestShowBank(t *testing.T) {
-// 	// Test case 1: Successful request with a valid bank ID
-
-// 	r := chi.NewRouter()
-// 	r.Get("/banks/{id}", handlers.ShowBank())
-
-// 	t.Run("Valid ID - with id=2", func(t *testing.T) {
-
-// 		url := "/banks/2"
-// 		req, err := http.NewRequest("GET", url, nil)
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-
-// 		rr := httptest.NewRecorder()
-// 		r.ServeHTTP(rr, req)
-
-// 		res := rr.Result()
-// 		defer res.Body.Close()
-
-// 		if status := rr.Code; status != http.StatusOK {
-// 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-// 		}
-// 	})
-
-// 	// Test case 2: Unsuccessful request with a invalid bank ID
-// 	t.Run("Invalid ID - with id=invalid", func(t *testing.T) {
-
-// 		url := "/banks/invalid"
-// 		req, err := http.NewRequest("GET", url, nil)
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-
-// 		rr := httptest.NewRecorder()
-// 		r.ServeHTTP(rr, req)
-
-// 		res := rr.Result()
-// 		defer res.Body.Close()
-
-// 		if status := rr.Code; status != http.StatusNoContent {
-// 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-// 		}
-// 	})
-// }
 
 // func TestDeleteBank(t *testing.T) {
 // 	r := chi.NewRouter()
